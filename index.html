@@ -34,14 +34,16 @@
         .life-summary .attributes-display { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
         .life-summary .attr-tag { background: white; padding: 6px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em; }
         .events-container { max-height: 500px; overflow-y: auto; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .event { padding: 15px; margin-bottom: 12px; border-radius: 8px; border-left: 4px; solid; animation: slideIn 0.5s ease-out; line-height: 1.7; }
+        .event { padding: 15px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid; animation: slideIn 0.5s ease-out; line-height: 1.7; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
         .event.positive { background: #d4edda; border-color: #28a745; }
         .event.negative { background: #f8d7da; border-color: #dc3545; }
         .event.neutral { background: #e2e3e5; border-color: #6c757d; }
         .event.death { background: #343a40; border-color: #000; color: white; }
+        .event.career { background: #fff3cd; border-color: #ffc107; }
         .event .age { font-weight: bold; color: #667eea; margin-bottom: 8px; font-size: 1.1em; }
         .event.death .age { color: white; }
+        .event.career .age { color: #856404; }
         .btn-restart { display: block; width: 100%; padding: 20px; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; border: none; border-radius: 10px; font-size: 1.3em; font-weight: bold; cursor: pointer; transition: all 0.3s; }
         .btn-restart:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(238,90,36,0.4); }
         .error-message { text-align: center; color: #dc3545; font-size: 1.2em; margin-top: 15px; }
@@ -103,10 +105,11 @@
     </div>
     <script>
         let attributes = { iq: 0, eq: 0, physique: 0, looks: 0, wealth: 0, luck: 0 };
-        let totalPoints = 30, remainingPoints = 30;
+        let remainingPoints = 30;
         let characterName = '';
+        
         const familyNames = ['张', '李', '王', '刘', '陈', '杨', '赵', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗'];
-        const givenNames = ['明', '伟', '芳', '娜', '敏', '静', '强', '磊', '洋', '勇', '军', '杰', '娟', '涛', '明', '超', '秀', '霞', '平', '刚', '桂', '英', '华', '文', '国', '海', '玲', '磊', '雪', '婷'];
+        const givenNames = ['明', '伟', '芳', '娜', '敏', '静', '强', '磊', '洋', '勇', '军', '杰', '娟', '涛', '明', '超', '秀', '霞', '平', '刚'];
         
         function changeAttribute(attr, delta) {
             const newValue = attributes[attr] + delta;
@@ -115,7 +118,6 @@
             attributes[attr] = newValue;
             remainingPoints -= delta;
             updateDisplay();
-            document.getElementById('error-message').textContent = '';
         }
         
         function updateDisplay() {
@@ -142,67 +144,96 @@
         
         function generateLife() {
             const events = [];
-            const params = calculateLifeParams();
+            const params = calculateParams();
+            const career = selectCareer(params);
             
             events.push(...generateChildhood(params));
             events.push(...generateSchool(params));
-            events.push(...generateYoungAdult(params));
-            events.push(...generateMiddleAge(params));
+            events.push(...generateCollegeAndCareer(params, career));
+            events.push(...generateMiddleAge(params, career));
             events.push(...generateOldAge(params));
             
-            displayLife(events, params);
+            displayLife(events, params, career);
         }
         
-        function calculateLifeParams() {
+        function calculateParams() {
             return {
-                avg: Object.values(attributes).reduce((a,b) => a+b, 0) / 6,
-                iq: attributes.iq / 10,
-                eq: attributes.eq / 10,
-                physique: attributes.physique / 10,
-                looks: attributes.looks / 10,
-                wealth: attributes.wealth / 10,
-                luck: attributes.luck / 10,
-                rand: () => Math.random(),
-                check: (threshold) => Math.random() < threshold + attributes.luck * 0.08
+                iq: attributes.iq,
+                eq: attributes.eq,
+                physique: attributes.physique,
+                looks: attributes.looks,
+                wealth: attributes.wealth,
+                luck: attributes.luck,
+                roll: (chance) => Math.random() < chance + attributes.luck * 0.03
             };
+        }
+        
+        function selectCareer(params) {
+            const careers = [];
+            
+            if (params.iq >= 8) careers.push({name: '科学家', weight: 30, type: 'intellectual'});
+            if (params.iq >= 7 && params.eq >= 5) careers.push({name: '律师', weight: 25, type: 'professional'});
+            if (params.iq >= 6 && params.wealth >= 6) careers.push({name: '医生', weight: 28, type: 'professional'});
+            if (params.eq >= 7 && params.looks >= 6) careers.push({name: '演员', weight: 20, type: 'artistic'});
+            if (params.iq >= 6 && params.luck >= 5) careers.push({name: '程序员', weight: 25, type: 'tech'});
+            if (params.physique >= 8) careers.push({name: '职业运动员', weight: 22, type: 'physical'});
+            if (params.physique >= 7 && params.iq >= 5) careers.push({name: '警官', weight: 20, type: 'service'});
+            if (params.physique >= 6 && params.luck >= 6) careers.push({name: '雇佣兵', weight: 15, type: 'adventure'});
+            if (params.looks >= 7 && params.eq >= 6) careers.push({name: '模特', weight: 18, type: 'artistic'});
+            if (params.iq >= 5 && params.eq >= 7) careers.push({name: '销售经理', weight: 22, type: 'business'});
+            if (params.wealth >= 7) careers.push({name: '企业家', weight: 25, type: 'business'});
+            if (params.iq >= 6 && params.looks >= 5) careers.push({name: '主播', weight: 18, type: 'media'});
+            if (params.physique >= 6 && params.looks >= 6) careers.push({name: '健身教练', weight: 16, type: 'physical'});
+            
+            if (careers.length === 0) {
+                careers.push(
+                    {name: '公务员', weight: 20, type: 'stable'},
+                    {name: '教师', weight: 20, type: 'stable'},
+                    {name: '销售员', weight: 20, type: 'business'},
+                    {name: '厨师', weight: 18, type: 'creative'},
+                    {name: '司机', weight: 15, type: 'service'}
+                );
+            }
+            
+            const totalWeight = careers.reduce((sum, c) => sum + c.weight, 0);
+            let random = Math.random() * totalWeight;
+            for (const career of careers) {
+                random -= career.weight;
+                if (random <= 0) return career;
+            }
+            return careers[0];
         }
         
         function generateChildhood(params) {
             const events = [];
-            const birthWealth = params.wealth > 0.7 ? '富裕' : params.wealth < 0.3 ? '贫困' : '普通';
+            const birth = params.wealth >= 7 ? '富裕' : params.wealth >= 4 ? '普通' : '贫困';
             
             events.push({
                 age: 0,
-                content: `${characterName}出生了！出生在${birthWealth}家庭。${params.wealth > 0.6 ? '父母是企业高管，从小就住在高档小区。' : params.wealth < 0.4 ? '父母是普通工人，住在老旧的出租屋里。' : '父母是工薪阶层，生活虽然不富裕但也温馨。'}${params.looks > 0.6 ? '你从小就长得很可爱，邻居们都夸你是个漂亮/帅气宝宝。' : ''}`,
-                type: 'positive'
+                content: `${characterName}出生了！出生在${birth}家庭。${params.wealth >= 7 ? '父母经商，从小衣食无忧。' : params.wealth <= 3 ? '父母是普通工人，生活拮据。' : '父母是工薪族，生活安稳。'}`,
+                type: 'neutral'
             });
             
-            if (params.check(0.4)) {
-                events.push({
-                    age: 3,
-                    content: '3岁那年，你在家里玩火差点烧伤自己，幸好及时发现。父母吓坏了，从此对你寸步不离。',
-                    type: 'negative'
-                });
-            }
-            
-            if (params.wealth > 0.7) {
-                events.push({
-                    age: 4,
-                    content: '4岁时，父母送你去了最好的幼儿园。你接触到了钢琴、舞蹈、美术等各种兴趣班，从小接受全面教育。',
-                    type: 'positive'
-                });
-            } else if (params.wealth < 0.3 && params.physique < 0.4) {
-                events.push({
-                    age: 4,
-                    content: '4岁那年你生了一场大病，高烧不退。父母借遍了亲戚的钱才把你治好，但家里的经济状况更加困难了。',
-                    type: 'negative'
-                });
-            }
-            
-            if (params.iq > 0.6) {
+            if (params.physique >= 7) {
                 events.push({
                     age: 5,
-                    content: '5岁时，你在幼儿园展现了惊人的记忆力，老师教的儿歌听一遍就能记住。老师们都说你是个聪明孩子。',
+                    content: '5岁时展现出运动天赋，幼儿园运动会上你跑得比所有人都快。',
+                    type: 'positive'
+                });
+            }
+            
+            if (params.iq >= 7) {
+                events.push({
+                    age: 6,
+                    content: '小学一年级，你第一次考试就拿了满分。老师说你是个聪明的孩子。',
+                    type: 'positive'
+                });
+            }
+            
+            if (params.looks >= 7) {
+                events.push({
+                    age: 10,
+                    content: '你是学校里最好看的学生，经常收到同学的情书。',
                     type: 'positive'
                 });
             }
@@ -213,215 +244,197 @@
         function generateSchool(params) {
             const events = [];
             
-            if (params.iq > 0.6) {
-                events.push({
-                    age: 6,
-                    content: '6岁上小学一年级，第一次考试成绩就拿了全班第一。班主任把你叫到办公室，给了你一颗糖果，说以后你就是班级的榜样了。',
-                    type: 'positive'
-                });
-            } else if (params.iq < 0.4) {
-                events.push({
-                    age: 6,
-                    content: '6岁上小学，但你发现学习比同龄人要吃力。第一次考试，你只考了65分，回家后被妈妈训了一顿。',
-                    type: 'negative'
-                });
-            }
-            
-            const bullyChance = params.eq + params.physique + params.looks;
-            if (bullyChance < 0.8 && params.check(0.5)) {
-                events.push({
-                    age: 8,
-                    content: '8岁那年，学校里有个高年级的总是欺负你。他抢走你的午饭钱，还威胁不能告诉老师。那段时间你每天放学都提心吊胆，直到后来老师发现了异常。',
-                    type: 'negative'
-                });
-            }
-            
-            if (params.looks > 0.7) {
-                events.push({
-                    age: 10,
-                    content: '10岁时，你已经长成了班级里最好看的学生。隔壁班有个女生/男生写了一封情书给你，被老师发现后，你们都被叫了家长。那天晚上，你第一次对"喜欢"有了模糊的认识。',
-                    type: 'positive'
-                });
-            }
-            
             events.push({
                 age: 12,
-                content: '12岁，小学毕业了。毕业典礼上，你最好的朋友哭着说要记住彼此的联系方式，但你们谁也没想到，从此以后真的就断了联系。',
+                content: '小学毕业，最好的朋友哭着和你告别。你们答应要保持联系，但后来慢慢断了。',
                 type: 'neutral'
             });
             
-            if (params.wealth > 0.6 && params.iq > 0.5) {
+            const middleScore = params.iq + params.wealth * 0.5 + Math.random() * 2;
+            if (middleScore >= 12) {
                 events.push({
                     age: 15,
-                    content: '15岁中考，你考上了市重点高中。父母为你骄傲，特意带你去吃了一顿大餐庆祝。那晚你们喝了饮料，你第一次尝到了"成就感"的味道。',
+                    content: '考上了重点高中！父母为你骄傲，带你去吃大餐庆祝。',
                     type: 'positive'
                 });
-            } else if (params.wealth < 0.4) {
+            } else {
                 events.push({
                     age: 15,
-                    content: '15岁中考失利，你只能去普通高中。那天晚上，你躲在被子里偷偷哭，觉得人生是不是就这样了。但第二天早上，你还是背起书包，走向了那所普通的高中。',
-                    type: 'negative'
+                    content: '中考成绩一般，去了普通高中。你暗下决心要努力学习。',
+                    type: 'neutral'
                 });
             }
             
-            if (params.check(0.5) && params.physique > 0.5) {
-                events.push({
-                    age: 16,
-                    content: '16岁那年你加入了校篮球队。每天放学后的训练让你筋疲力尽，但当你在校运会上投进关键一球，全场欢呼的时候，你觉得自己是世界上最幸福的人。',
-                    type: 'positive'
-                });
-            }
-            
-            const gkScore = params.iq + params.wealth + params.luck + Math.random();
-            if (gkScore > 2.3) {
+            const highScore = params.iq + params.wealth * 0.5 + params.luck * 0.3 + Math.random() * 2;
+            if (highScore >= 14) {
                 events.push({
                     age: 18,
-                    content: `18岁高考，你超常发挥，考了${Math.floor(600 + Math.random() * 100)}分！被985大学录取。收到录取通知书那天，全家人都喜极而泣。爸爸说:"我们家的祖坟冒青烟了！"`,
+                    content: `高考发挥出色，考了${580 + Math.floor(Math.random() * 50)}分！被985大学录取。全家人喜极而泣！`,
                     type: 'positive'
                 });
-            } else if (gkScore > 1.5) {
+            } else if (highScore >= 10) {
                 events.push({
                     age: 18,
-                    content: '18岁高考，你考了个中等成绩，被一所普通本科录取。虽然没有考上名校，但你也还算满意。至少，你有大学上了。',
+                    content: '高考成绩不错，考上了普通本科。虽然不是名校，但也算满意。',
                     type: 'neutral'
                 });
             } else {
                 events.push({
                     age: 18,
-                    content: '18岁高考，你考砸了。分数只能上专科或者复读。你选择了复读，那一年是你人生中最黑暗的日子。每天刷题到半夜，看着镜子里憔悴的自己，你无数次想过放弃。',
+                    content: '高考失利，只能上专科。但你没有放弃，打算以后再努力。',
                     type: 'negative'
-                });
-                if (params.check(0.6)) {
-                    events.push({
-                        age: 19,
-                        content: '复读一年后，你终于考上了一所普通的本科大学。虽然不是什么名校，但当你看到录取通知书的那一刻，还是哭得像个孩子。',
-                        type: 'positive'
-                    });
-                }
-            }
-            
-            return events;
-        }
-        
-        function generateYoungAdult(params) {
-            const events = [];
-            
-            if (params.looks > 0.6 && params.check(0.6)) {
-                events.push({
-                    age: 19,
-                    content: '大学里，你很快成了校园男神/女神。每天都能收到各种表白，社团招新时你的摊位永远排最长的队。你也开始享受这种被关注的感觉。',
-                    type: 'positive'
-                });
-            }
-            
-            if (params.eq > 0.6 && params.check(0.7)) {
-                events.push({
-                    age: 20,
-                    content: '大二那年，你遇到了TA。TA是在图书馆和你抢同一本书时认识的，你们从书聊到人生，从人生聊到理想。那是你第一次认真谈恋爱，你们一起自习、一起吃饭、一起看电影，那段时光甜蜜得像梦。',
-                    type: 'positive'
-                });
-                if (params.check(0.5)) {
-                    events.push({
-                        age: 22,
-                        content: '毕业前夕，TA去了另一个城市发展。你们尝试过异地恋，但距离终究打败了爱情。分手那天，你们在火车站抱头痛哭，你说:"祝你前程似锦。"TA说:"你也是。"然后背对背，走向了各自的人生。',
-                        type: 'negative'
-                    });
-                }
-            }
-            
-            if (params.wealth > 0.7) {
-                events.push({
-                    age: 22,
-                    content: '大学毕业，父母托关系帮你进了一家国企，工作稳定福利好。同事们都羡慕你，说你是"人生赢家"。但你总觉得，这份工作是父母给的，不是你自己争取的。',
-                    type: 'positive'
-                });
-            } else if (params.iq > 0.6) {
-                events.push({
-                    age: 22,
-                    content: '你凭借出色的成绩，进了一家知名的互联网公司。起薪不错，但工作强度也很大。第一个月，你每天加班到十点，回到家只想睡觉，连手机都没力气刷。',
-                    type: 'neutral'
-                });
-            } else {
-                events.push({
-                    age: 22,
-                    content: '找工作处处碰壁，最后你只能去一家小公司做销售。底薪很少，全靠提成。第一个月你只卖出去了三单产品，拿到手心的工资还不够交房租。',
-                    type: 'negative'
-                });
-            }
-            
-            if (params.check(0.4)) {
-                events.push({
-                    age: 25,
-                    content: '25岁那年，你投资了一个朋友的项目。对方说得天花乱坠，承诺一年内翻三倍。你信了，把自己所有的积蓄都投了进去。半年后，朋友失联了，你才发现自己被骗了。那一夜，你喝得烂醉如泥。',
-                    type: 'negative'
-                });
-            }
-            
-            if (params.iq > 0.5 && params.check(0.5)) {
-                events.push({
-                    age: 27,
-                    content: '工作五年后，你凭借着过硬的技术能力，被提拔为部门经理。工资翻倍了，但头发也掉了不少。你坐在办公室里，看着窗外的城市，突然觉得:原来这就是成年人的生活啊。',
-                    type: 'positive'
                 });
             }
             
             return events;
         }
         
-        function generateMiddleAge(params) {
+        function generateCollegeAndCareer(params, career) {
             const events = [];
             
-            if (params.check(0.6)) {
-                events.push({
-                    age: 30,
-                    content: '30岁了，父母开始催婚。每次回家，七大姑八大姨都会问:"有对象了吗？什么时候结婚？"你开始觉得烦躁，也有一丝孤独。',
-                    type: 'negative'
-                });
-                if (params.eq > 0.5 && params.check(0.6)) {
-                    events.push({
-                        age: 32,
-                        content: '相亲认识了TA。TA不是你理想中的样子，但你们聊得来，都想结婚了。于是你们就这样走到了一起，像大多数普通人一样，按部就班地结婚、生子。',
-                        type: 'neutral'
-                    });
-                }
-            }
+            const careerStories = {
+                '科学家': [
+                    {age: 19, content: '大学选择了物理专业，沉迷于实验室的研究工作。', type: 'neutral'},
+                    {age: 22, content: '本科毕业后继续读研，你的研究成果在核心期刊上发表。', type: 'positive'},
+                    {age: 25, content: '获得博士学位，进入国家级研究所工作。', type: 'career'},
+                    {age: 30, content: '你的科研项目获得重大突破，在学术界声名鹊起！', type: 'positive'}
+                ],
+                '律师': [
+                    {age: 19, content: '大学学习法律专业，每天都在背法条。', type: 'neutral'},
+                    {age: 22, content: '通过司法考试，进入一家知名律师事务所。', type: 'career'},
+                    {age: 28, content: '代理了一个备受关注的大案，胜诉后名声大噪。', type: 'positive'}
+                ],
+                '医生': [
+                    {age: 19, content: '考入医学院，开始漫长的学医之路。', type: 'neutral'},
+                    {age: 24, content: '住院医师生涯开始，每天工作14小时，累但充实。', type: 'neutral'},
+                    {age: 28, content: '成为主治医师，开始独立诊治病人。', type: 'career'},
+                    {age: 35, content: '成功完成了一台高难度手术，家属跪地感谢你。', type: 'positive'}
+                ],
+                '演员': [
+                    {age: 19, content: '考入戏剧学院，开始学习表演。', type: 'neutral'},
+                    {age: 21, content: '被选中出演一部网剧的小角色，虽然台词不多但很兴奋。', type: 'positive'},
+                    {age: 25, content: '出演第一部主演电影，开始有了粉丝。', type: 'career'},
+                    {age: 30, content: '获得最佳男演员/女演员奖，成为一线明星！', type: 'positive'}
+                ],
+                '程序员': [
+                    {age: 19, content: '大学学习计算机专业，开始接触编程。', type: 'neutral'},
+                    {age: 22, content: '毕业后进入互联网大厂，年薪30万起步。', type: 'career'},
+                    {age: 26, content: '头发掉了很多，但技术越来越厉害，升职技术主管。', type: 'neutral'},
+                    {age: 32, content: '开发的一款APP爆火，获得千万投资。', type: 'positive'}
+                ],
+                '职业运动员': [
+                    {age: 16, content: '被省队选中，开始专业训练。', type: 'positive'},
+                    {age: 19, content: '进入国家队，开始备战国际比赛。', type: 'career'},
+                    {age: 23, content: '在世界大赛中夺得金牌，为国争光！', type: 'positive'},
+                    {age: 28, content: '因伤病退役，转型成为体育解说员。', type: 'neutral'}
+                ],
+                '警官': [
+                    {age: 19, content: '考入警校，开始严格的训练。', type: 'neutral'},
+                    {age: 22, content: '成为一名人民警察，开始街头巡逻。', type: 'career'},
+                    {age: 28, content: '破获一起大案，获得集体三等功。', type: 'positive'},
+                    {age: 35, content: '升任刑侦队长，负责重案要案。', type: 'career'}
+                ],
+                '雇佣兵': [
+                    {age: 20, content: '参军服役，后被私人安保公司相中。', type: 'neutral'},
+                    {age: 22, content: '成为雇佣兵，在战乱地区执行任务，收入高风险高。', type: 'career'},
+                    {age: 28, content: '在任务中救下重要人物，获得巨额奖金。', type: 'positive'},
+                    {age: 35, content: '经历太多生死，决定退役回国，开了一家安保公司。', type: 'neutral'}
+                ],
+                '模特': [
+                    {age: 18, content: '被星探发掘，开始做兼职模特。', type: 'positive'},
+                    {age: 21, content: '签约知名模特公司，开始走秀拍广告。', type: 'career'},
+                    {age: 25, content: '登上国际时尚周，成为国际超模。', type: 'positive'},
+                    {age: 30, content: '转型做时尚博主，年收入破千万。', type: 'positive'}
+                ],
+                '销售经理': [
+                    {age: 22, content: '毕业后进入一家销售公司，从最基层做起。', type: 'neutral'},
+                    {age: 26, content: '连续三年销售冠军，升任区域经理。', type: 'career'},
+                    {age: 32, content: '带出一个优秀的销售团队，年销售额过亿。', type: 'positive'}
+                ],
+                '企业家': [
+                    {age: 19, content: '大学期间就开始创业，第一次做电商赔了本钱。', type: 'negative'},
+                    {age: 22, content: '父母投资你开了一家公司，开始认真经营。', type: 'career'},
+                    {age: 28, content: '公司发展顺利，获得A轮融资，估值过亿。', type: 'positive'},
+                    {age: 35, content: '公司上市，你成为亿万富翁！', type: 'positive'}
+                ],
+                '主播': [
+                    {age: 19, content: '大学时开始做游戏直播，一开始只有几个观众。', type: 'neutral'},
+                    {age: 22, content: '签约直播平台，粉丝量突破百万。', type: 'career'},
+                    {age: 26, content: '成为头部主播，年入百万，风光无限。', type: 'positive'}
+                ],
+                '健身教练': [
+                    {age: 20, content: '获得健身教练证书，开始在健身房工作。', type: 'neutral'},
+                    {age: 25, content: '积累了一批忠实客户，口碑越来越好。', type: 'career'},
+                    {age: 30, content: '开设自己的健身工作室，生意火爆。', type: 'positive'}
+                ],
+                '公务员': [
+                    {age: 22, content: '通过国考，成为一名基层公务员。', type: 'career'},
+                    {age: 28, content: '工作稳定，每天朝九晚五，生活平淡但安稳。', type: 'neutral'},
+                    {age: 35, content: '晋升副科长，仕途稳步前进。', type: 'neutral'}
+                ],
+                '教师': [
+                    {age: 22, content: '成为一所中学的老师，开始教书育人。', type: 'career'},
+                    {age: 28, content: '带的班级在中考中成绩优异，被评为优秀教师。', type: 'positive'},
+                    {age: 35, content: '获得高级教师职称，成为学校骨干。', type: 'positive'}
+                ],
+                '销售员': [
+                    {age: 22, content: '做起了销售工作，每天奔波于各个客户之间。', type: 'neutral'},
+                    {age: 28, content: '业绩时好时坏，收入不稳定，生活压力较大。', type: 'neutral'},
+                    {age: 35, content: '熬成了老销售，有了稳定的客户群，生活好转。', type: 'positive'}
+                ],
+                '厨师': [
+                    {age: 20, content: '拜师学艺，从打杂开始做起。', type: 'neutral'},
+                    {age: 25, content: '获得厨师证，成为主厨。', type: 'career'},
+                    {age: 32, content: '开了一家小餐馆，凭借好手艺生意兴隆。', type: 'positive'}
+                ],
+                '司机': [
+                    {age: 22, content: '成为一名出租车司机，每天在城市里穿梭。', type: 'career'},
+                    {age: 30, content: '网约车兴起后收入增加，生活有所改善。', type: 'neutral'},
+                    {age: 40, content: '买了自己的车，开起了专车，收入稳定。', type: 'positive'}
+                ]
+            };
             
-            if (params.physique < 0.4 && params.wealth < 0.5) {
-                events.push({
-                    age: 35,
-                    content: '35岁那年，你查出脂肪肝、高血压。医生说要注意身体，少熬夜多运动。但你知道，房贷、车贷、孩子的学费，压得你根本停不下来。',
-                    type: 'negative'
-                });
-            }
+            const story = careerStories[career.name] || careerStories['教师'];
+            story.forEach(s => events.push({...s}));
             
-            if (params.wealth > 0.6) {
+            return events;
+        }
+        
+        function generateMiddleAge(params, career) {
+            const events = [];
+            
+            if (params.roll(0.5)) {
                 events.push({
-                    age: 38,
-                    content: '38岁，你买了自己的房子和车。虽然没有豪宅名车，但至少在城市里有了自己的一方天地。看着新家的钥匙，你给父母打了个电话，说:"爸、妈，你们可以放心了。"电话那头，父母的声音带着哽咽。',
+                    age: 32,
+                    content: '遇到了相伴一生的人，你们结婚了。',
+                    type: 'positive'
+                });
+                
+                events.push({
+                    age: 34,
+                    content: '孩子出生了，初为人父母的你感到无比幸福。',
                     type: 'positive'
                 });
             }
             
-            if (params.check(0.3)) {
+            if (params.roll(0.3) && career.type !== 'adventure') {
                 events.push({
                     age: 40,
-                    content: '40岁，公司裁员了。你虽然保住了工作，但工资降了30%。上有老下有小，你不敢辞职，只能忍气吞声。那段时间你经常失眠，半夜醒来，看着天花板发呆。',
+                    content: '40岁那年，公司裁员，你失业了。找工作四处碰壁，生活陷入困境。',
                     type: 'negative'
                 });
-            }
-            
-            if (params.iq > 0.5 && params.check(0.4)) {
+                
                 events.push({
-                    age: 45,
-                    content: '40多岁，你开始创业。第一次失败了，赔了很多钱。但你没有放弃，继续尝试。终于，在45岁那年，你的公司开始盈利了。那天晚上，你喝了一瓶酒，哭了。不是因为难过，是因为，你终于证明了，自己不是废物。',
+                    age: 42,
+                    content: '不甘心沉沦，你开始重新学习技能，终于找到了新的工作。',
                     type: 'positive'
                 });
             }
             
-            if (params.check(0.5)) {
+            if (params.roll(0.4)) {
                 events.push({
                     age: 48,
-                    content: '48岁那年，父亲/母亲因病去世了。葬礼上，你看着躺在那里的老人，突然意识到，你再也没有爸爸/妈妈了。那一瞬间，你觉得自己像个被抛弃的孩子，即使你已经快50岁了。',
+                    content: '父亲/母亲因病去世。你第一次真切地感受到生命的脆弱。',
                     type: 'negative'
                 });
             }
@@ -434,85 +447,67 @@
             
             events.push({
                 age: 55,
-                content: '55岁，你退休了。不用再赶早高峰，不用再开无休止的会。但每天醒来，看着空荡荡的房子，你反而不知道该干什么了。你开始怀念上班的日子，至少那时，你还有事可做。',
+                content: '55岁，退休了。不用再上班，你反而不知道该干什么。',
                 type: 'neutral'
             });
             
-            if (params.physique > 0.6) {
-                events.push({
-                    age: 60,
-                    content: '60岁，你身体还很硬朗。你开始和一帮老友一起旅游，去了很多年轻时想去但没去过的地方。在长城上，你看着连绵的城墙，突然明白:人生就像这长城，有坡有坎，但只要你一直走，总能看到更多的风景。',
-                    type: 'positive'
-                });
-            }
-            
-            if (params.wealth > 0.6) {
+            if (params.physique >= 6) {
                 events.push({
                     age: 65,
-                    content: '65岁，孙子/孙女出生了。你抱着那个小小的生命，突然觉得这一生都值得了。你开始每天帮着带孩子，虽然累，但看着孩子一天天长大，你心里满是欢喜。',
+                    content: '身体还硬朗，经常和老友一起旅游，年轻时没去过的地方现在都去了。',
                     type: 'positive'
                 });
             }
             
-            if (params.physique < 0.4) {
+            if (params.roll(0.5)) {
                 events.push({
-                    age: 68,
-                    content: '68岁，你的身体开始走下坡路。糖尿病、心脏病、老寒腿...各种毛病接踵而至。你开始频繁进出医院，看着病房里来来往往的病人，你第一次真切地意识到，自己老了。',
-                    type: 'negative'
+                    age: 70,
+                    content: '孙子/孙女出生了，你每天帮忙带孩子，忙碌但快乐。',
+                    type: 'positive'
                 });
             }
             
-            events.push({
-                age: 70,
-                content: '70岁，你开始整理自己的一生。翻看年轻时的照片，那些熟悉的面孔有些已经不在了，有些已经老得认不出来了。你把照片小心地收进相册，心想:这些，就是我的故事啊。',
-                type: 'neutral'
-            });
+            let deathAge = 75 + Math.floor(Math.random() * 15);
+            if (params.physique >= 8) deathAge += 10;
+            if (params.wealth >= 7) deathAge += 5;
+            if (params.physique <= 3) deathAge -= 10;
             
-            let deathAge = 75;
-            if (params.physique > 0.7) deathAge = 85 + Math.floor(Math.random() * 10);
-            else if (params.physique > 0.5) deathAge = 80 + Math.floor(Math.random() * 8);
-            else if (params.physique > 0.3) deathAge = 75 + Math.floor(Math.random() * 6);
-            else deathAge = 70 + Math.floor(Math.random() * 5);
-            if (params.wealth > 0.7) deathAge += 3;
-            
-            const deathReasons = [
-                '在睡梦中安详离世，没有痛苦，就像睡着了一样。',
-                '因突发心脏病去世，走得很突然，但至少没有受太多罪。',
-                '因病缠身多年，最终在医院里走完了最后一段路。',
-                '在家人陪伴下安详离世，临终前你说:"这辈子，我没有遗憾。"',
-                '在公园晨练时突然倒下，医生说走得很安详。',
+            const deathWays = [
+                '在睡梦中安详离世，没有痛苦。',
+                '突发心脏病，走得很突然。',
+                '因病去世，子女们陪伴在身边。',
+                '在公园晨练时倒下，医生说走得很安详。',
+                '临终前说："这辈子，我没有遗憾。"'
             ];
             
             events.push({
                 age: deathAge,
-                content: deathReasons[Math.floor(Math.random() * deathReasons.length)],
-                type: 'death',
-                isDeath: true
+                content: deathWays[Math.floor(Math.random() * deathWays.length)],
+                type: 'death'
             });
             
             return events;
         }
         
-        function displayLife(events, params) {
+        function displayLife(events, params, career) {
             const title = document.getElementById('life-title');
             const subtitle = document.getElementById('life-subtitle');
             const attrsDisplay = document.getElementById('attributes-display');
             
-            if (params.avg > 7) {
+            const total = Object.values(attributes).reduce((a, b) => a + b, 0);
+            if (total >= 50) {
                 title.textContent = '👑 传奇人生';
-                subtitle.textContent = `${characterName}的一生波澜壮阔，堪称传奇！`;
-            } else if (params.avg > 5) {
+            } else if (total >= 40) {
                 title.textContent = '✨ 精彩人生';
-                subtitle.textContent = `${characterName}的一生充实而有意义！`;
-            } else if (params.avg > 3) {
+            } else if (total >= 30) {
                 title.textContent = '📖 普通人生';
-                subtitle.textContent = `${characterName}过完了平凡但真实的一生。`;
             } else {
                 title.textContent = '💭 坎坷人生';
-                subtitle.textContent = `${characterName}的一生充满艰辛，但TA从未放弃。`;
             }
             
-            attrsDisplay.innerHTML = Object.entries(attributes).map(([k,v]) => 
+            subtitle.textContent = `${characterName}是一名${career.name}，${career.type === 'adventure' ? '充满冒险' : '平凡而真实'}的一生。`;
+            
+            attrsDisplay.innerHTML = Object.entries(attributes).map(([k, v]) => 
                 `<span class="attr-tag">${['🧠','❤️','💪','✨','💰','🍀'][Object.keys(attributes).indexOf(k)]} ${k}: ${v}</span>`
             ).join('');
             
@@ -529,7 +524,6 @@
             updateDisplay();
             document.getElementById('simulation-view').style.display = 'none';
             document.getElementById('setup-view').style.display = 'block';
-            document.getElementById('error-message').textContent = '';
         }
     </script>
 </body>
