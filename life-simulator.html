@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        /* 分配点数界面 */
+        #setup-view {
+            display: block;
+        }
+
+        .points-info {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+        }
+
+        .points-info h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .points-info p {
+            color: #666;
+        }
+
+        .attributes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .attribute {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .attribute:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .attribute-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .attribute-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .attribute-value {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .attribute-desc {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .attribute-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-attr {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-minus {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-plus {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-attr:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+
+        .btn-attr:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 模拟界面 */
+        #simulation-view {
+            display: none;
+        }
+
+        .life-summary {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .life-summary h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .life-summary .attributes-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .life-summary .attr-tag {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .events-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .event {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event.positive {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .event.negative {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .event.neutral {
+            background: #e2e3e5;
+            border-color: #6c757d;
+        }
+
+        .event.death {
+            background: #343a40;
+            border-color: #000;
+            color: white;
+        }
+
+        .event.age {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .event.death .age {
+            color: white;
+        }
+
+        .event-content {
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(238, 90, 36, 0.4);
+        }
+
+        .error-message {
+            text-align: center;
+            color: #dc3545;
+            font-size: 1.2em;
+            margin-top: 15px;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .attributes {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-start, .btn-restart {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 人生模拟器</h1>
+
+        <!-- 属性分配界面 -->
+        <div id="setup-view">
+            <div class="points-info">
+                <h2>剩余点数: <span id="remaining-points">30</span></h2>
+                <p>分配你的属性，决定人生走向</p>
+            </div>
+
+            <div class="attributes">
+                <div class="attribute" data-attr="iq">
+                    <div class="attribute-header">
+                        <span class="attribute-name">🧠 智商</span>
+                        <span class="attribute-value" id="value-iq">0</span>
+                    </div>
+                    <div class="attribute-desc">影响学习成绩、职业发展</div>
+                    <div class="attribute-controls">
+                        <button class="btn-attr btn-minus" onclick="changeAttribute('iq', -1)">−</button>
+                        <button class="btn-attr btn-plus" onclick="changeAttribute('iq', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="attribute" data-attr="eq">
+                    <div class="attribute-header">
+                        <span class="attribute-name">❤️ 情商</span>
+                        <span class="attribute-value" id="value-eq">0</span>
+                    </div>
+                    <div class="attribute-desc">影响人际关系、感情生活</div>
+                    <div class="attribute-controls">
+                        <button class="btn-attr btn-minus" onclick="changeAttribute('eq', -1)">−</button>
+                        <button class="btn-attr btn-plus" onclick="changeAttribute('eq', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="attribute" data-attr="physique">
+                    <div class="attribute-header">
+                        <span class="attribute-name">💪 体能</span>
+                        <span class="attribute-value" id="value-physique">0</span>
+                    </div>
+                    <div class="attribute-desc">影响健康、运动能力</div>
+                    <div class="attribute-controls">
+                        <button class="btn-attr btn-minus" onclick="changeAttribute('physique', -1)">−</button>
+                        <button class="btn-attr btn-plus" onclick="changeAttribute('physique', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="attribute" data-attr="looks">
+                    <div class="attribute-header">
+                        <span class="attribute-name">✨ 相貌</span>
+                        <span class="attribute-value" id="value-looks">0</span>
+                    </div>
+                    <div class="attribute-desc">影响第一印象、社交优势</div>
+                    <div class="attribute-controls">
+                        <button class="btn-attr btn-minus" onclick="changeAttribute('looks', -1)">−</button>
+                        <button class="btn-attr btn-plus" onclick="changeAttribute('looks', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="attribute" data-attr="wealth">
+                    <div class="attribute-header">
+                        <span class="attribute-name">💰 家境</span>
+                        <span class="attribute-value" id="value-wealth">0</span>
+                    </div>
+                    <div class="attribute-desc">影响教育资源、起跑线</div>
+                    <div class="attribute-controls">
+                        <button class="btn-attr btn-minus" onclick="changeAttribute('wealth', -1)">−</button>
+                        <button class="btn-attr btn-plus" onclick="changeAttribute('wealth', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-start" id="btn-start" onclick="startSimulation()">🚀 开始模拟</button>
+            <div class="error-message" id="error-message"></div>
+        </div>
+
+        <!-- 模拟结果界面 -->
+        <div id="simulation-view">
+            <div class="life-summary">
+                <h2 id="life-title">🌟 人生旅程</h2>
+                <p id="life-subtitle"></p>
+                <div class="attributes-display" id="attributes-display"></div>
+            </div>
+
+            <div class="events-container" id="events-container"></div>
+
+            <button class="btn-restart" onclick="restart()">🔄 再次重生</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let attributes = {
+            iq: 0,
+            eq: 0,
+            physique: 0,
+            looks: 0,
+            wealth: 0
+        };
+
+        let totalPoints = 30;
+        let remainingPoints = 30;
+
+        // 改变属性值
+        function changeAttribute(attr, delta) {
+            const newValue = attributes[attr] + delta;
+
+            // 检查边界条件
+            if (newValue < 0 || newValue > 15) {
+                return;
+            }
+
+            if (delta > 0 && remainingPoints <= 0) {
+                showError('点数已用完！');
+                return;
+            }
+
+            // 更新属性
+            attributes[attr] = newValue;
+            remainingPoints -= delta;
+
+            // 更新显示
+            updateDisplay();
+            document.getElementById('error-message').textContent = '';
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('remaining-points').textContent = remainingPoints;
+            document.getElementById('value-iq').textContent = attributes.iq;
+            document.getElementById('value-eq').textContent = attributes.eq;
+            document.getElementById('value-physique').textContent = attributes.physique;
+            document.getElementById('value-looks').textContent = attributes.looks;
+            document.getElementById('value-wealth').textContent = attributes.wealth;
+            document.getElementById('btn-start').disabled = remainingPoints > 0;
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            setTimeout(() => {
+                errorEl.textContent = '';
+            }, 2000);
+        }
+
+        // 开始模拟
+        function startSimulation() {
+            if (remainingPoints > 0) {
+                showError('请分配完所有点数！');
+                return;
+            }
+
+            // 切换界面
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('simulation-view').style.display = 'block';
+
+            // 生成人生事件
+            generateLife();
+        }
+
+        // 生成人生
+        function generateLife() {
+            const events = [];
+            const lifeParams = calculateLifeParameters();
+
+            // 0-5岁：童年
+            events.push(...generateChildhood(lifeParams));
+
+            // 6-18岁：学生时代
+            events.push(...generateSchool(lifeParams));
+
+            // 19-30岁：青年时期
+            events.push(...generateYoungAdult(lifeParams));
+
+            // 31-50岁：中年时期
+            events.push(...generateMiddleAge(lifeParams));
+
+            // 51-70岁：老年前期
+            events.push(...generateEarlyOldAge(lifeParams));
+
+            // 71岁-死亡
+            events.push(...generateLateOldAge(lifeParams));
+
+            // 显示结果
+            displayLifeEvents(events, lifeParams);
+        }
+
+        // 计算人生参数
+        function calculateLifeParameters() {
+            const totalAttr = Object.values(attributes).reduce((a, b) => a + b, 0);
+            const avgAttr = totalAttr / 5;
+
+            return {
+                avgAttr,
+                iqScore: attributes.iq / 10,
+                eqScore: attributes.eq / 10,
+                physiqueScore: attributes.physique / 10,
+                looksScore: attributes.looks / 10,
+                wealthScore: attributes.wealth / 10,
+                health: 50 + attributes.physique * 3 + attributes.wealth * 2,
+                luck: Math.random()
+            };
+        }
+
+        // 生成童年事件 (0-5岁)
+        function generateChildhood(params) {
+            const events = [];
+
+            events.push({
+                age: 0,
+                content: getBirth(params),
+                type: 'positive'
+            });
+
+            events.push({
+                age: 1,
+                content: '你开始牙牙学语，第一次喊出"爸爸妈妈"。',
+                type: 'neutral'
+            });
+
+            if (params.wealthScore > 0.8) {
+                events.push({
+                    age: 3,
+                    content: '家庭为你报了早教班，你从小就接受优质教育。',
+                    type: 'positive'
+                });
+            } else if (params.wealthScore < 0.4) {
+                events.push({
+                    age: 3,
+                    content: '父母工作忙碌，你经常独自玩耍，培养了独立性。',
+                    type: 'neutral'
+                });
+            }
+
+            if (params.looksScore > 0.8) {
+                events.push({
+                    age: 4,
+                    content: '你是小区里最可爱的孩子，邻居们都很喜欢你。',
+                    type: 'positive'
+                });
+            }
+
+            if (params.physiqueScore < 0.4) {
+                events.push({
+                    age: 5,
+                    content: '你身体较弱，经常生病，父母很担心。',
+                    type: 'negative'
+                });
+            }
+
+            return events;
+        }
+
+        // 获取出生信息
+        function getBirth(params) {
+            const wealthy = params.wealthScore > 0.7;
+            const poor = params.wealthScore < 0.4;
+
+            if (wealthy && params.looksScore > 0.7) {
+                return '你出生在一个富裕家庭，天生丽质，是父母心中的小天使。';
+            } else if (wealthy) {
+                return '你出生在一个富裕家庭，从小衣食无忧。';
+            } else if (poor && params.wealthScore < 0.3) {
+                return '你出生在贫困家庭，生活艰难，但父母竭尽全力照顾你。';
+            } else if (poor) {
+                return '你出生在普通家庭，生活节俭但温馨。';
+            } else {
+                return '你出生在一个普通家庭，开始了你的人生旅程。';
+            }
+        }
+
+        // 生成学生时代事件 (6-18岁)
+        function generateSchool(params) {
+            const events = [];
+
+            // 小学
+            if (params.iqScore > 0.8) {
+                events.push({
+                    age: 6,
+                    content: '上小学了，你展现出了超常的学习能力，老师经常表扬你。',
+                    type: 'positive'
+                });
+            } else if (params.iqScore < 0.4) {
+                events.push({
+                    age: 6,
+                    content: '上小学了，学习对你来说有些吃力，需要付出更多努力。',
+                    type: 'negative'
+                });
+            } else {
+                events.push({
+                    age: 6,
+                    content: '上小学了，你开始了学生生涯。',
+                    type: 'neutral'
+                });
+            }
+
+            // 初中
+            const middleSchoolEvents = [];
+            if (params.eqScore > 0.7) {
+                middleSchoolEvents.push('你在班里人缘很好，很多同学愿意和你做朋友。');
+            }
+            if (params.looksScore > 0.8) {
+                middleSchoolEvents.push('你的外貌吸引了很多人注意，收到过情书。');
+            }
+            if (params.iqScore > 0.7) {
+                middleSchoolEvents.push('你在年级里名列前茅，是学霸级别的人物。');
+            }
+
+            if (middleSchoolEvents.length > 0) {
+                events.push({
+                    age: 12,
+                    content: '上初中了。' + middleSchoolEvents.join(' '),
+                    type: 'positive'
+                });
+            } else {
+                events.push({
+                    age: 12,
+                    content: '上初中了，你进入了新的学习阶段。',
+                    type: 'neutral'
+                });
+            }
+
+            // 高中
+            const highSchoolResult = params.iqScore + params.wealthScore + Math.random() * 0.5;
+            if (highSchoolResult > 2) {
+                events.push({
+                    age: 15,
+                    content: '你考上了重点高中，前途一片光明。',
+                    type: 'positive'
+                });
+                events.push({
+                    age: 18,
+                    content: '高考发挥出色，考入了理想的大学！家人为你骄傲。',
+                    type: 'positive'
+                });
+            } else if (highSchoolResult > 1.2) {
+                events.push({
+                    age: 15,
+                    content: '你考上了普通高中，准备努力学习。',
+                    type: 'neutral'
+                });
+                events.push({
+                    age: 18,
+                    content: '高考成绩还不错，考上了一所不错的大学。',
+                    type: 'positive'
+                });
+            } else {
+                events.push({
+                    age: 15,
+                    content: '高中没考上重点，你决定要更加努力。',
+                    type: 'negative'
+                });
+                if (Math.random() > 0.5) {
+                    events.push({
+                        age: 18,
+                        content: '高考成绩不理想，只能上专科院校。',
+                        type: 'negative'
+                    });
+                } else {
+                    events.push({
+                        age: 18,
+                        content: '高考失利，你决定复读再战一年。',
+                        type: 'negative'
+                    });
+                    events.push({
+                        age: 19,
+                        content: '第二次高考，考上了本科院校，虽然不是名校但已经很满足了。',
+                        type: 'positive'
+                    });
+                }
+            }
+
+            return events;
+        }
+
+        // 生成青年时期事件 (19-30岁)
+        function generateYoungAdult(params) {
+            const events = [];
+
+            // 大学恋爱
+            if (params.looksScore + params.eqScore > 1.2 && Math.random() > 0.3) {
+                events.push({
+                    age: 20,
+                    content: '在大学里你遇到了心仪的人，开始了一段美好的恋情。',
+                    type: 'positive'
+                });
+                if (Math.random() > 0.6) {
+                    events.push({
+                        age: 23,
+                        content: '毕业前夕，你和他/她因为前途问题分手了，青春总有遗憾。',
+                        type: 'negative'
+                    });
+                } else {
+                    events.push({
+                        age: 25,
+                        content: '感情稳定，你们决定一起步入婚姻的殿堂！',
+                        type: 'positive'
+                    });
+                }
+            }
+
+            // 工作
+            if (params.iqScore > 0.8) {
+                events.push({
+                    age: 22,
+                    content: '凭借优秀的成绩和能力，你进入了一家知名企业工作。',
+                    type: 'positive'
+                });
+            } else if (params.wealthScore > 0.8) {
+                events.push({
+                    age: 22,
+                    content: '家里为你安排了体面的工作，起跑线很好。',
+                    type: 'positive'
+                });
+            } else if (params.eqScore > 0.7) {
+                events.push({
+                    age: 22,
+                    content: '虽然学历一般，但你善于交际，很快就找到了不错的工作。',
+                    type: 'positive'
+                });
+            } else {
+                events.push({
+                    age: 22,
+                    content: '找工作不太顺利，只能先从基础岗位做起。',
+                    type: 'negative'
+                });
+            }
+
+            // 事业发展
+            const careerSuccess = params.iqScore + params.eqScore + params.wealthScore * 0.5 + Math.random();
+            if (careerSuccess > 2.5) {
+                events.push({
+                    age: 27,
+                    content: '事业蒸蒸日上，你已经成为了部门的骨干力量。',
+                    type: 'positive'
+                });
+            } else if (careerSuccess > 1.8) {
+                events.push({
+                    age: 27,
+                    content: '工作还算稳定，但没有什么大的突破。',
+                    type: 'neutral'
+                });
+            } else {
+                events.push({
+                    age: 27,
+                    content: '工作遇到了瓶颈，你开始考虑转行或深造。',
+                    type: 'negative'
+                });
+            }
+
+            return events;
+        }
+
+        // 生成中年时期事件 (31-50岁)
+        function generateMiddleAge(params) {
+            const events = [];
+
+            // 健康问题
+            if (params.physiqueScore < 0.5 && Math.random() > 0.5) {
+                events.push({
+                    age: 35,
+                    content: '长期工作压力导致身体出现了一些问题，你开始注意健康。',
+                    type: 'negative'
+                });
+            }
+
+            // 财务状况
+            const financialSuccess = params.wealthScore + params.iqScore * 0.5 + Math.random();
+            if (financialSuccess > 1.5 && params.wealthScore > 0.6) {
+                events.push({
+                    age: 40,
+                    content: '你的投资眼光不错，加上家庭背景，财务状况相当不错。',
+                    type: 'positive'
+                });
+                events.push({
+                    age: 45,
+                    content: '你买了自己的房子和车，生活富足。',
+                    type: 'positive'
+                });
+            } else if (financialSuccess > 1) {
+                events.push({
+                    age: 40,
+                    content: '生活还算安稳，虽然不富裕但也衣食无忧。',
+                    type: 'neutral'
+                });
+            } else {
+                events.push({
+                    age: 35,
+                    content: '生活压力较大，房贷、孩子教育等各种开销让你喘不过气。',
+                    type: 'negative'
+                });
+            }
+
+            // 子女
+            if (params.eqScore > 0.6) {
+                events.push({
+                    age: 38,
+                    content: '你教育孩子有方，孩子很争气，学习成绩优秀。',
+                    type: 'positive'
+                });
+            }
+
+            // 事业巅峰
+            if (params.iqScore > 0.7 && params.eqScore > 0.6) {
+                events.push({
+                    age: 48,
+                    content: '你达到了事业巅峰，成为了行业内的知名人物。',
+                    type: 'positive'
+                });
+            }
+
+            return events;
+        }
+
+        // 生成老年前期事件 (51-70岁)
+        function generateEarlyOldAge(params) {
+            const events = [];
+
+            // 退休
+            if (params.wealthScore > 0.7) {
+                events.push({
+                    age: 55,
+                    content: '你提前退休了，开始享受生活。',
+                    type: 'positive'
+                });
+            } else {
+                events.push({
+                    age: 60,
+                    content: '退休了，虽然养老金不多，但也够基本生活。',
+                    type: 'neutral'
+                });
+            }
+
+            // 健康状况
+            const healthAge = 65;
+            if (params.physiqueScore > 0.7) {
+                events.push({
+                    age: healthAge,
+                    content: '虽然年过花甲，但你身体依然硬朗，还能到处旅游。',
+                    type: 'positive'
+                });
+            } else if (params.physiqueScore < 0.4) {
+                events.push({
+                    age: healthAge,
+                    content: '年老体衰，各种慢性病找上门来，需要长期吃药。',
+                    type: 'negative'
+                });
+            }
+
+            // 孙辈
+            if (params.eqScore > 0.5) {
+                events.push({
+                    age: 58,
+                    content: '你有了可爱的孙辈，含饴弄孙的生活让你很开心。',
+                    type: 'positive'
+                });
+            }
+
+            return events;
+        }
+
+        // 生成晚年事件 (71岁-死亡)
+        function generateLateOldAge(params) {
+            const events = [];
+
+            // 计算死亡年龄
+            let deathAge = 75;
+            if (params.physiqueScore > 0.8) {
+                deathAge = 85 + Math.floor(Math.random() * 10);
+            } else if (params.physiqueScore > 0.6) {
+                deathAge = 80 + Math.floor(Math.random() * 8);
+            } else if (params.physiqueScore > 0.4) {
+                deathAge = 75 + Math.floor(Math.random() * 7);
+            } else {
+                deathAge = 70 + Math.floor(Math.random() * 5);
+            }
+
+            // 家境影响寿命
+            if (params.wealthScore > 0.8) {
+                deathAge += 3;
+            } else if (params.wealthScore < 0.3) {
+                deathAge -= 2;
+            }
+
+            // 70岁后的事件
+            events.push({
+                age: 70,
+                content: '古稀之年，你开始回顾自己的一生。',
+                type: 'neutral'
+            });
+
+            if (deathAge > 85) {
+                events.push({
+                    age: 80,
+                    content: '你是长寿的老人，见证了时代的变迁。',
+                    type: 'positive'
+                });
+            }
+
+            // 死亡
+            const deathMessages = [
+                '在睡梦中安详离世，走完了这一生。',
+                '因病安详离世，家人陪伴在身边。',
+                '在家人陪伴下安详离世，这一生无悔。',
+                '你平静地离开了这个世界，留给家人无尽的思念。'
+            ];
+
+            events.push({
+                age: deathAge,
+                content: deathMessages[Math.floor(Math.random() * deathMessages.length)],
+                type: 'death',
+                isDeath: true
+            });
+
+            return events;
+        }
+
+        // 显示人生事件
+        function displayLifeEvents(events, params) {
+            // 设置标题
+            const titleEl = document.getElementById('life-title');
+            const subtitleEl = document.getElementById('life-subtitle');
+            const attrsEl = document.getElementById('attributes-display');
+
+            const avg = params.avgAttr;
+            if (avg >= 8) {
+                titleEl.textContent = '🌟 传奇人生';
+                subtitleEl.textContent = '你的一生充满精彩，堪称传奇！';
+            } else if (avg >= 6) {
+                titleEl.textContent = '✨ 精彩人生';
+                subtitleEl.textContent = '你的一生充实而精彩！';
+            } else if (avg >= 4) {
+                titleEl.textContent = '📖 普通人生';
+                subtitleEl.textContent = '平凡但真实，这就是大多数人的人生。';
+            } else {
+                titleEl.textContent = '💭 坎坷人生';
+                subtitleEl.textContent = '人生路上困难重重，但你依然坚持了下来。';
+            }
+
+            attrsEl.innerHTML = `
+                <span class="attr-tag">🧠 智商: ${attributes.iq}</span>
+                <span class="attr-tag">❤️ 情商: ${attributes.eq}</span>
+                <span class="attr-tag">💪 体能: ${attributes.physique}</span>
+                <span class="attr-tag">✨ 相貌: ${attributes.looks}</span>
+                <span class="attr-tag">💰 家境: ${attributes.wealth}</span>
+            `;
+
+            // 显示事件
+            const container = document.getElementById('events-container');
+            container.innerHTML = '';
+
+            events.forEach((event, index) => {
+                const eventEl = document.createElement('div');
+                eventEl.className = `event ${event.type}`;
+                eventEl.innerHTML = `
+                    <div class="event-content">
+                        <span class="age">${event.age}岁：</span>
+                        ${event.content}
+                    </div>
+                `;
+                container.appendChild(eventEl);
+            });
+
+            // 滚动到顶部
+            container.scrollTop = 0;
+        }
+
+        // 重新开始
+        function restart() {
+            // 重置属性
+            attributes = {
+                iq: 0,
+                eq: 0,
+                physique: 0,
+                looks: 0,
+                wealth: 0
+            };
+            remainingPoints = 30;
+
+            // 更新显示
+            updateDisplay();
+
+            // 切换界面
+            document.getElementById('simulation-view').style.display = 'none';
+            document.getElementById('setup-view').style.display = 'block';
+            document.getElementById('error-message').textContent = '';
+        }
+    </script>
+</body>
+</html>
